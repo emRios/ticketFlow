@@ -1,0 +1,2 @@
+# Docker Compose - TicketFlow
+# TODO: Configurar servicios (backend, worker, postgres, rabbitmq, redis)

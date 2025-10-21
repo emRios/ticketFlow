@@ -1,0 +1,230 @@
+@import url("https://fonts.googleapis.com/css?family=Quicksand&display=swap");
+
+html {
+  box-sizing: border-box;
+}
+
+:root {
+  --column-1: #fef6cf;
+  --column-2: #57adff;
+  --column-3: #519e47;
+  --column-4: #fbe9e9;
+  --default-white: #ffffff;
+  --text: #003c58;
+}
+
+body {
+  margin: 0;
+  background: #163c29;
+  color: var(--default-white);
+  font-family: Quicksand, sans-serif;
+  overflow-y: hidden;
+  padding: 20px;
+}
+
+h1 {
+  letter-spacing: 2px;
+}
+
+.main-title {
+  text-align: center;
+  font-size: 3rem;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.drag-list {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Columns */
+.drag-column {
+  flex: 1;
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.4);
+  color: var(--default-white);
+  overflow-x: hidden;
+}
+
+.backlog-column .header,
+.backlog-column .solid,
+.backlog-column .solid:hover {
+  background-color: var(--column-1);
+  color: #6b2b0d;
+}
+
+.progress-column .header,
+.progress-column .solid,
+.progress-column .solid:hover {
+  background-color: #ffffff;
+  color: #353f50;
+}
+
+.complete-column .header,
+.complete-column .solid,
+.complete-column .solid:hover {
+  background-color: #f1fef1;
+  color: #163c29;
+}
+
+.on-hold-column .header,
+.on-hold-column .solid,
+.on-hold-column .solid:hover {
+  background-color: #fbe9e9;
+  color: #590c07;
+}
+
+/* Custom Scrollbar */
+.custom-scroll {
+  overflow-y: auto;
+  max-height: 75vh;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.3);
+  margin-right: 5px;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+}
+
+.header h1 {
+  font-size: 1.25rem;
+}
+
+/* Drag and Drop */
+.over {
+  padding: 50px 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.9);
+}
+
+.drag-item-list {
+  min-height: 50px;
+}
+
+.drag-item {
+  margin: 10px;
+  padding: 10px;
+  height: fit-content;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  border-radius: 10px;
+  line-height: 1.5rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.drag-item:focus {
+  outline: none;
+  background-color: white;
+  color: black;
+}
+
+/* Add Button Group */
+.add-btn-group {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.add-btn {
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease-in;
+  user-select: none;
+}
+
+.add-btn:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: black;
+}
+
+.add-btn:active {
+  transform: scale(0.97);
+}
+
+.solid {
+  display: none;
+}
+
+.solid:hover {
+  transition: unset;
+  filter: brightness(95%);
+  color: white;
+}
+
+.plus-sign {
+  font-size: 1.5rem;
+  position: relative;
+}
+
+.add-container {
+  margin: 10px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.9);
+  min-height: 100px;
+  display: none;
+}
+
+.add-item {
+  width: 100%;
+  min-height: 100px;
+  height: auto;
+  background-color: white;
+  margin: 5px auto;
+  resize: none;
+  color: black;
+  padding: 10px;
+}
+
+.add-item:focus {
+  outline: none;
+}
+
+/* Media Query: Laptop */
+@media screen and (max-width: 1800px) {
+  .main-title {
+    font-size: 2rem;
+  }
+}
+
+/* Media Query: Large Smartphone (Vertical) */
+@media screen and (max-width: 600px) {
+  body {
+    overflow-y: auto;
+  }
+
+  .drag-container {
+    margin: 0;
+  }
+
+  .drag-list {
+    display: block;
+  }
+}
