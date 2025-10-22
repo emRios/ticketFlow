@@ -5,9 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TicketFlow – Demo Tablero</title>
   <link rel="stylesheet" href="../../packages/board-adapter-vanilla/styles.css" />
-  <style> body { background:#fff } </style>
+  <style> 
+    body { background:#fff; margin: 0; }
+    .app-header {
+      background: #fff;
+      border-bottom: 1px solid #e3e3e8;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .app-header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    .scope-filters {
+      display: flex;
+      gap: 8px;
+    }
+    .scope-btn {
+      padding: 8px 16px;
+      border: 1px solid #e3e3e8;
+      background: #fff;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .scope-btn:hover {
+      background: #f5f5f7;
+      border-color: #d0d0d5;
+    }
+    .scope-btn.active {
+      background: #3b82f6;
+      color: #fff;
+      border-color: #3b82f6;
+    }
+    .scope-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
+  <header class="app-header">
+    <h1>TicketFlow</h1>
+    <div class="scope-filters">
+      <button id="scope-assigned" class="scope-btn active" data-scope="assigned">Asignados a mí</button>
+      <button id="scope-team" class="scope-btn" data-scope="team">Mi equipo</button>
+      <button id="scope-all" class="scope-btn" data-scope="all">Todos</button>
+    </div>
+  </header>
   <div id="app" class="board"></div>
   <script type="module" src="./main.ts"></script>
 </body>

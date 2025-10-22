@@ -1,5 +1,5 @@
 // Gestión de sesión del usuario actual
-import { getMe, type CurrentUser } from './api/me';
+import { getMe, type CurrentUser } from '../api/me';
 
 /**
  * Usuario actual autenticado

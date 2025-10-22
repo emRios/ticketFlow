@@ -7,9 +7,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@domain/*": ["packages/domain-core/*"],
-      "@board-core/*": ["packages/board-core/*"],
-      "@board-adapter/*": ["packages/board-adapter-vanilla/*"]
+      "@ticketflow/domain-core": ["packages/domain-core"],
+      "@ticketflow/domain-core/*": ["packages/domain-core/*"],
+      "@ticketflow/board-core": ["packages/board-core"],
+      "@ticketflow/board-core/*": ["packages/board-core/*"],
+      "@ticketflow/board-adapter-vanilla": ["packages/board-adapter-vanilla"],
+      "@ticketflow/board-adapter-vanilla/*": ["packages/board-adapter-vanilla/*"]
     }
   },
   "include": ["packages", "apps"]

@@ -10,9 +10,9 @@ export default defineConfig({
   server: { port: 5173 },
   resolve: {
     alias: {
-      '@domain': resolve(__dirname, './packages/domain-core'),
-      '@board-core': resolve(__dirname, './packages/board-core'),
-      '@board-adapter': resolve(__dirname, './packages/board-adapter-vanilla')
+      '@ticketflow/domain-core': resolve(__dirname, './packages/domain-core'),
+      '@ticketflow/board-core': resolve(__dirname, './packages/board-core'),
+      '@ticketflow/board-adapter-vanilla': resolve(__dirname, './packages/board-adapter-vanilla')
     }
   }
 });

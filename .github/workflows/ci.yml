@@ -1,2 +1,33 @@
 # GitHub Actions CI/CD
-# TODO: Configurar pipeline (build, test, deploy)
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  verify-structure:
+    name: Verify Repository Structure
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run structure verification
+        run: pwsh -File scripts/verify-structure.ps1
+
+  check-markdown-links:
+    name: Check Markdown Links
+    runs-on: windows-latest
+    needs: verify-structure
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run markdown links checker
+        run: pwsh -File scripts/check-markdown-links.ps1
+

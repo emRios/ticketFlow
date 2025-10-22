@@ -1,0 +1,5 @@
+Id,Name,Email,Role,IsActive
+u001,Carlos Admin,carlos.admin@ticketflow.com,ADMIN,true
+u002,Ana Garcia,ana.garcia@ticketflow.com,AGENT,true
+u003,Luis Martinez,luis.martinez@ticketflow.com,AGENT,true
+u004,Maria Cliente,maria.cliente@example.com,CLIENT,true

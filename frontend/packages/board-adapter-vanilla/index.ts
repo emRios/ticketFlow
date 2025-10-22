@@ -95,13 +95,26 @@ export function initBoard(el: HTMLElement, props: { columns: ColumnDTO[]; ticket
     props.tickets.sort((a,b)=> a.order - b.order).forEach(ticket => {
       const card = document.createElement('div');
       card.className = 'card';
-      card.draggable = ticket.capabilities?.canDrag !== false;
+      
+      // Capabilities con defaults seguros
+      const caps = ticket.capabilities ?? {};
+      const canDrag = caps.canDrag !== false; // default: true
+      
+      card.draggable = canDrag;
       card.setAttribute('data-ticket-id', ticket.ticketId);
+      
+      // Clase visual para tickets no arrastrables
+      if (!canDrag) {
+        card.classList.add('is-disabled');
+      }
+      
       card.innerHTML = `
+        <div class="card-id">#${ticket.ticketId}</div>
         <div class="card-header">
           <div class="card-title">${ticket.title}</div>
           ${renderAssignee(ticket.assignee)}
         </div>
+        ${ticket.assignee ? `<div class="card-assignee-name">Asignado a: ${ticket.assignee.name}</div>` : ''}
         ${renderTags(ticket.tags)}
       `;
       const body = el.querySelector(`.col[data-col-id="${ticket.columnId}"] .col-body`) as HTMLElement;
@@ -170,11 +183,12 @@ export function initBoard(el: HTMLElement, props: { columns: ColumnDTO[]; ticket
         
         // Buscar el ticket para revisar capabilities
         const ticket = props.tickets.find(t => t.ticketId === ticketId);
-        const canDropTo = ticket?.capabilities?.canDropTo;
+        const caps = ticket?.capabilities ?? {};
+        const canDropTo = caps.canDropTo;
         
         // Si existe canDropTo y el destino NO está permitido, bloquear
         if (canDropTo && !canDropTo.includes(to)) {
-          dbg('[adapter] drop blocked', { to, allowed: canDropTo });
+          dbg('[adapter] drop blocked', { ticketId, from, to, allowed: canDropTo });
           return;
         }
         

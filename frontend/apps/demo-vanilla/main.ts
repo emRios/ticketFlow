@@ -1,85 +1,49 @@
-import { initBoard } from '../../packages/board-adapter-vanilla/index';
-import { initSession, currentUser } from './session';
-import { getBoard } from './api/board';
+import { initBoard } from '@ticketflow/board-adapter-vanilla';
+import { initSession } from './state/session';
+import { loadBoard, BoardData } from './state/board-loader';
+import { createBoardHandlers } from './handlers/board-handlers';
+import { setupScopeButtons } from './views/scope-buttons';
+import { BoardScope } from './api/board';
+
+// ===== Variables globales =====
+let board: ReturnType<typeof initBoard>;
+let currentScope: BoardScope = 'assigned';
+let ticketsCache: any[] = []; // Cache para validaciones en handlers
 
 // ===== Inicialización =====
 async function init() {
   // 1. Inicializar sesión antes de hidratar el tablero
   await initSession();
-  console.log('[session]', currentUser);
   
-  // 2. Obtener datos del tablero desde API
-  const { columns, tickets } = await getBoard('assigned');
-  console.log('[board]', { columns, tickets });
+  // 2. Cargar datos iniciales
+  const data = await loadBoard(currentScope);
+  ticketsCache = data.rawTickets;
   
-  // 3. Mapear tickets a DTOs del adapter (sin capabilities, solo UI)
-  const ticketsForAdapter = tickets.map(t => ({
-    ticketId: t.id,
-    title: t.title,
-    columnId: t.columnId,
-    order: t.order,
-    tags: t.tags,
-    assignee: t.assignee
-  }));
+  // 3. Crear handlers con lógica de recarga
+  const handlers = createBoardHandlers(ticketsCache, async () => {
+    const newData = await loadBoard(currentScope);
+    ticketsCache = newData.rawTickets;
+    board.rerender({ columns: newData.columns, tickets: newData.tickets });
+  });
   
   // 4. Hidratar tablero
   const root = document.getElementById('app')!;
-  const board = initBoard(root, {
-    columns, 
-    tickets: ticketsForAdapter,
-  
-  // ===== Drag & Drop Handlers =====
-  async onMove(cmd) {
-    console.log('[onMove]', cmd);
-    
-    // TODO: Validar capabilities antes de ejecutar
-    // TODO: POST /api/tickets/${cmd.ticketId}/move con { to, newIndex }
-    // TODO: Recargar board: const newData = await getBoard('assigned'); board.rerender(newData);
-    
-    console.warn('[onMove] No implementado aún - requiere backend');
-  },
-  
-  async onReorder(cmd) {
-    console.log('[onReorder]', cmd);
-    
-    // TODO: Validar capabilities antes de ejecutar
-    // TODO: POST /api/tickets/${cmd.ticketId}/reorder con { newIndex }
-    // TODO: Recargar board
-    
-    console.warn('[onReorder] No implementado aún - requiere backend');
-  },
-  
-  // ===== Assignee Handler =====
-  async onAssignTicket(cmd) {
-    console.log('[onAssignTicket]', cmd);
-    
-    // TODO: POST /api/tickets/${cmd.ticketId}/assign con { assigneeId }
-    // TODO: Recargar board
-    
-    console.warn('[onAssignTicket] No implementado aún - requiere backend');
-  },
-  
-  // ===== Tags Handlers =====
-  async onAddTagToTicket(cmd) {
-    console.log('[onAddTagToTicket]', cmd);
-    
-    // TODO: POST /api/tickets/${cmd.ticketId}/tags con { tagId }
-    // TODO: Recargar board
-    
-    console.warn('[onAddTagToTicket] No implementado aún - requiere backend');
-  },
-  
-  async onRemoveTagFromTicket(cmd) {
-    console.log('[onRemoveTagFromTicket]', cmd);
-    
-    // TODO: DELETE /api/tickets/${cmd.ticketId}/tags/${cmd.tagId}
-    // TODO: Recargar board
-    
-    console.warn('[onRemoveTagFromTicket] No implementado aún - requiere backend');
-  }
+  board = initBoard(root, {
+    columns: data.columns,
+    tickets: data.tickets,
+    ...handlers // Spread de todos los handlers (onMove, onReorder, etc.)
   });
   
-  return board;
+  // 5. Setup de botones de filtro por scope
+  setupScopeButtons(
+    currentScope,
+    (scope, newData) => {
+      currentScope = scope;
+      ticketsCache = newData.rawTickets;
+      board.rerender({ columns: newData.columns, tickets: newData.tickets });
+    },
+    loadBoard
+  );
 }
 
 // Iniciar aplicación

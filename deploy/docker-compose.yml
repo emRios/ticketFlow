@@ -1,2 +1,132 @@
 # Docker Compose - TicketFlow
-# TODO: Configurar servicios (backend, worker, postgres, rabbitmq, redis)
+# Servicios de infraestructura y aplicaciones
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ticketflow-postgres
+    restart: unless-stopped
+    profiles: ["infra"]
+    environment:
+      POSTGRES_DB: ticketflow
+      POSTGRES_USER: ticketflow_user
+      POSTGRES_PASSWORD: ticketflow_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.utf8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketflow_user -d ticketflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ticketflow-network
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ticketflow-rabbitmq
+    restart: unless-stopped
+    profiles: ["infra"]
+    environment:
+      RABBITMQ_DEFAULT_USER: ticketflow_user
+      RABBITMQ_DEFAULT_PASS: ticketflow_pass
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ticketflow-network
+
+  # API Backend (Placeholder)
+  # TODO: Descomentar cuando el backend esté implementado
+  # api:
+  #   image: ticketflow-api:latest
+  #   container_name: ticketflow-api
+  #   restart: unless-stopped
+  #   profiles: ["app"]
+  #   depends_on:
+  #     - postgres
+  #     - rabbitmq
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #   env_file:
+  #     - ./env/backend.env.example
+  #   ports:
+  #     - "5000:5000"
+  #   networks:
+  #     - ticketflow-network
+
+  # Worker (Placeholder)
+  # TODO: Descomentar cuando el worker esté implementado
+  # worker:
+  #   image: ticketflow-worker:latest
+  #   container_name: ticketflow-worker
+  #   restart: unless-stopped
+  #   profiles: ["app"]
+  #   depends_on:
+  #     - postgres
+  #     - rabbitmq
+  #   env_file:
+  #     - ./env/worker.env.example
+  #   networks:
+  #     - ticketflow-network
+
+# Volúmenes nombrados para persistencia
+volumes:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+# Red compartida entre servicios
+networks:
+  ticketflow-network:
+    driver: bridge
+
+# ============================================
+# NOTAS DE USO
+# ============================================
+#
+# Levantar solo infraestructura (PostgreSQL + RabbitMQ):
+#   docker compose --profile infra up -d
+#
+# Levantar aplicaciones (API + Worker):
+#   docker compose --profile app up -d
+#
+# Levantar todo (infra + app):
+#   docker compose --profile infra --profile app up -d
+#   # O más simple:
+#   docker compose up -d  # (solo si se elimina profiles)
+#
+# Verificar servicios:
+#   docker compose ps
+#
+# Ver logs:
+#   docker compose logs -f postgres
+#   docker compose logs -f rabbitmq
+#
+# Detener servicios:
+#   docker compose --profile infra down
+#   docker compose --profile app down
+#
+# Eliminar volúmenes (datos persistentes):
+#   docker compose down -v
+#
+# Acceso a servicios:
+#   - PostgreSQL: localhost:5432 (user: ticketflow_user, pass: ticketflow_pass)
+#   - RabbitMQ UI: http://localhost:15672 (user: ticketflow_user, pass: ticketflow_pass)
+#   - API: http://localhost:5000 (cuando esté implementado)
+#
