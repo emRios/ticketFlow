@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@web/*": ["src/web/*"],
+      "@server/*": ["src/server/*"],
+      "@backend/*": ["src/server/backend/*"],
+      "@worker/*": ["src/server/worker/*"]
+    }
+  }
+}

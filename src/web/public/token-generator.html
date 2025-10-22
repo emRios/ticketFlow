@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Token JWT - TicketFlow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .token-output {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .token-output.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .token-text {
+            word-break: break-all;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #22c55e;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info {
+            background: #dbeafe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #3b82f6;
+        }
+        .info p {
+            margin: 8px 0;
+            font-size: 13px;
+            color: #1e40af;
+        }
+        .info code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #be123c;
+        }
+        .copy-btn {
+            background: #22c55e;
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        .copy-btn:hover {
+            background: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Generador de Token JWT</h1>
+        <p class="subtitle">TicketFlow - Token de Autenticación</p>
+
+        <div class="form-group">
+            <label for="userId">🆔 User ID</label>
+            <input type="text" id="userId" value="u123" placeholder="u123">
+        </div>
+
+        <div class="form-group">
+            <label for="username">👤 Username</label>
+            <input type="text" id="username" value="testuser" placeholder="testuser">
+        </div>
+
+        <div class="form-group">
+            <label for="role">🎭 Role</label>
+            <select id="role">
+                <option value="AGENT" selected>AGENT (Puede ver y modificar tickets)</option>
+                <option value="ADMIN">ADMIN (Acceso total)</option>
+                <option value="CLIENT">CLIENT (Solo lectura)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="email">📧 Email</label>
+            <input type="email" id="email" value="agent@test.com" placeholder="agent@test.com">
+        </div>
+
+        <div class="form-group">
+            <label for="expirationHours">⏱️ Expiración (horas)</label>
+            <input type="number" id="expirationHours" value="24" min="1" max="720">
+        </div>
+
+        <button class="btn" onclick="generateToken()">🚀 Generar Token JWT</button>
+
+        <div class="token-output" id="tokenOutput">
+            <div class="success">
+                ✅ Token Generado Exitosamente
+            </div>
+            <label>Token JWT:</label>
+            <div class="token-text" id="tokenText"></div>
+            <button class="btn copy-btn" onclick="copyAndSetToken()">📋 Copiar y Configurar en localStorage</button>
+        </div>
+
+        <div class="info">
+            <p><strong>ℹ️ Instrucciones:</strong></p>
+            <p>1. Haz clic en "Generar Token JWT"</p>
+            <p>2. Haz clic en "Copiar y Configurar en localStorage"</p>
+            <p>3. Abre tu aplicación en <code>http://localhost:5173</code></p>
+            <p>4. El token se configurará automáticamente y la página se recargará</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del backend
+        const JWT_CONFIG = {
+            secretKey: 'SuperSecretKey123456789012345678901234567890',
+            issuer: 'TicketFlowApi',
+            audience: 'TicketFlowClient'
+        };
+
+        // Función base64url encoding (compatible con JWT)
+        function base64urlEncode(str) {
+            const base64 = btoa(str);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        // Función para crear HMAC SHA256 usando Web Crypto API
+        async function hmacSha256(message, secret) {
+            const encoder = new TextEncoder();
+            const keyData = encoder.encode(secret);
+            const messageData = encoder.encode(message);
+            
+            const key = await crypto.subtle.importKey(
+                'raw',
+                keyData,
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+            );
+            
+            const signature = await crypto.subtle.sign('HMAC', key, messageData);
+            return new Uint8Array(signature);
+        }
+
+        // Convertir ArrayBuffer a base64url
+        function arrayBufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const base64 = btoa(binary);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        async function generateToken() {
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+            const role = document.getElementById('role').value;
+            const email = document.getElementById('email').value;
+            const expirationHours = parseInt(document.getElementById('expirationHours').value);
+
+            // Calcular timestamp de expiración
+            const now = Math.floor(Date.now() / 1000);
+            const exp = now + (expirationHours * 3600);
+
+            // Header JWT
+            const header = {
+                alg: 'HS256',
+                typ: 'JWT'
+            };
+
+            // Payload JWT con claims correctos para .NET
+            const payload = {
+                sub: userId,
+                'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': username,
+                'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': role,
+                'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': email,
+                exp: exp,
+                iat: now,
+                iss: JWT_CONFIG.issuer,
+                aud: JWT_CONFIG.audience
+            };
+
+            // Codificar header y payload
+            const encodedHeader = base64urlEncode(JSON.stringify(header));
+            const encodedPayload = base64urlEncode(JSON.stringify(payload));
+
+            // Crear mensaje a firmar
+            const message = `${encodedHeader}.${encodedPayload}`;
+
+            // Generar firma HMAC SHA256
+            const signatureBuffer = await hmacSha256(message, JWT_CONFIG.secretKey);
+            const encodedSignature = arrayBufferToBase64url(signatureBuffer);
+
+            // Token JWT completo
+            const token = `${message}.${encodedSignature}`;
+
+            // Mostrar token
+            document.getElementById('tokenText').textContent = token;
+            document.getElementById('tokenOutput').classList.add('show');
+
+            // Guardar token temporalmente
+            window.generatedToken = token;
+
+            console.log('✅ Token generado:', token);
+            console.log('📅 Expira el:', new Date(exp * 1000).toLocaleString());
+        }
+
+        function copyAndSetToken() {
+            const token = window.generatedToken;
+            if (!token) {
+                alert('⚠️ Primero genera un token');
+                return;
+            }
+
+            // Copiar al portapapeles
+            navigator.clipboard.writeText(token).then(() => {
+                // Intentar abrir la app y configurar el token
+                const appUrl = 'http://localhost:5173';
+                const newWindow = window.open(appUrl, '_blank');
+                
+                if (newWindow) {
+                    // Esperar a que la ventana cargue
+                    setTimeout(() => {
+                        try {
+                            newWindow.localStorage.setItem('jwt_token', token);
+                            newWindow.location.reload();
+                            alert('✅ Token copiado y configurado en la aplicación!\n\n' +
+                                  'La página se recargará automáticamente.\n\n' +
+                                  'Si no se abre automáticamente, pega esto en la consola:\n' +
+                                  `localStorage.setItem('jwt_token', '${token}'); location.reload();`);
+                        } catch (e) {
+                            alert('✅ Token copiado al portapapeles!\n\n' +
+                                  'Abre http://localhost:5173 y pega esto en la consola (F12):\n\n' +
+                                  `localStorage.setItem('jwt_token', '${token}');\nlocation.reload();`);
+                        }
+                    }, 1000);
+                } else {
+                    alert('✅ Token copiado al portapapeles!\n\n' +
+                          'Abre http://localhost:5173 y pega esto en la consola (F12):\n\n' +
+                          `localStorage.setItem('jwt_token', '${token}');\nlocation.reload();`);
+                }
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+                alert('⚠️ No se pudo copiar automáticamente. Selecciona y copia el token manualmente.');
+            });
+        }
+
+        // Generar token automáticamente al cargar
+        window.addEventListener('load', () => {
+            generateToken();
+        });
+    </script>
+</body>
+</html>

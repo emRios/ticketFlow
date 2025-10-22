@@ -1,0 +1,30 @@
+<Project>
+  <!-- 
+    Este archivo establece propiedades globales para todos los proyectos en src/server/
+    Se aplica automáticamente a todos los .csproj en esta carpeta y subcarpetas.
+    
+    IMPORTANTE: Esto previene que se creen carpetas duplicadas con el nombre del proyecto.
+  -->
+  
+  <PropertyGroup>
+    <!-- Evitar crear carpetas duplicadas como TicketFlow.Worker/TicketFlow.Worker/ -->
+    <BaseOutputPath Condition="'$(BaseOutputPath)' == ''">bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)' == ''">obj\</BaseIntermediateOutputPath>
+    
+    <!-- Configuración común para todos los proyectos -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Optimizaciones de compilación -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Configuración de análisis de código -->
+  <PropertyGroup>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

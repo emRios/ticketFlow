@@ -4,12 +4,15 @@
 version: '3.8'
 
 services:
+  # ============================================
+  # INFRASTRUCTURE SERVICES
+  # ============================================
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: ticketflow-postgres
     restart: unless-stopped
-    profiles: ["infra"]
     environment:
       POSTGRES_DB: ticketflow
       POSTGRES_USER: ticketflow_user
@@ -32,7 +35,6 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: ticketflow-rabbitmq
     restart: unless-stopped
-    profiles: ["infra"]
     environment:
       RABBITMQ_DEFAULT_USER: ticketflow_user
       RABBITMQ_DEFAULT_PASS: ticketflow_pass
@@ -50,54 +52,128 @@ services:
     networks:
       - ticketflow-network
 
-  # API Backend (Placeholder)
-  # TODO: Descomentar cuando el backend esté implementado
-  # api:
-  #   image: ticketflow-api:latest
-  #   container_name: ticketflow-api
-  #   restart: unless-stopped
-  #   profiles: ["app"]
-  #   depends_on:
-  #     - postgres
-  #     - rabbitmq
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #   env_file:
-  #     - ./env/backend.env.example
-  #   ports:
-  #     - "5000:5000"
-  #   networks:
-  #     - ticketflow-network
+  # ============================================
+  # APPLICATION SERVICES
+  # ============================================
 
-  # Worker (Placeholder)
-  # TODO: Descomentar cuando el worker esté implementado
-  # worker:
-  #   image: ticketflow-worker:latest
-  #   container_name: ticketflow-worker
-  #   restart: unless-stopped
-  #   profiles: ["app"]
-  #   depends_on:
-  #     - postgres
-  #     - rabbitmq
-  #   env_file:
-  #     - ./env/worker.env.example
-  #   networks:
-  #     - ticketflow-network
+  # API Backend
+  api:
+    build:
+      context: ../src/server/backend
+      dockerfile: Api/Dockerfile
+    image: ticketflow-api:latest
+    container_name: ticketflow-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5076
+      # Connection Strings
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ticketflow;Username=ticketflow_user;Password=ticketflow_pass
+      # JWT Settings
+      - Jwt__SecretKey=SuperSecretKey123456789012345678901234567890
+      - Jwt__Issuer=TicketFlowApi
+      - Jwt__Audience=TicketFlowClient
+      - Jwt__ExpirationMinutes=60
+      # RabbitMQ Settings
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=ticketflow_user
+      - RabbitMQ__Password=ticketflow_pass
+      - RabbitMQ__Exchange=tickets
+      # Logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft.AspNetCore=Warning
+    env_file:
+      - ./env/backend.env
+    ports:
+      - "5076:5076"
+    networks:
+      - ticketflow-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5076/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-# Volúmenes nombrados para persistencia
+  # Worker (Outbox Processor)
+  worker:
+    build:
+      context: ../src/server
+      dockerfile: worker/Dockerfile
+    image: ticketflow-worker:latest
+    container_name: ticketflow-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_started
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      # Connection Strings
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ticketflow;Username=ticketflow_user;Password=ticketflow_pass
+      # RabbitMQ Settings
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=ticketflow_user
+      - RabbitMQ__Password=ticketflow_pass
+      - RabbitMQ__Exchange=tickets
+      # Logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__TicketFlow.Worker=Debug
+    env_file:
+      - ./env/worker.env
+    networks:
+      - ticketflow-network
+
+# ============================================
+# VOLUMES
+# ============================================
+
 volumes:
   postgres_data:
     driver: local
   rabbitmq_data:
     driver: local
 
-# Red compartida entre servicios
+# ============================================
+# NETWORKS
+# ============================================
+
 networks:
   ticketflow-network:
     driver: bridge
 
 # ============================================
 # NOTAS DE USO
+# ============================================
+# 
+# Levantar solo infraestructura:
+#   docker compose up postgres rabbitmq -d
+#
+# Levantar todo:
+#   docker compose up -d
+#
+# Ver logs:
+#   docker compose logs -f api
+#   docker compose logs -f worker
+#
+# Rebuild y restart:
+#   docker compose up --build -d
+#
+# Detener todo:
+#   docker compose down
+#
+# Limpiar volúmenes:
+#   docker compose down -v
 # ============================================
 #
 # Levantar solo infraestructura (PostgreSQL + RabbitMQ):

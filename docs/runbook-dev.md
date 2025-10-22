@@ -273,11 +273,11 @@ curl http://localhost:5000/health
 
 ```powershell
 # 1. Instalar dependencias (primera vez)
-cd frontend
+cd src/web
 npm install
 
 # 2. Configurar variables de entorno
-# Crear frontend/.env.local con:
+# Crear src/web/.env.local con:
 # VITE_API_BASE_URL=http://localhost:5000
 
 # 3. Levantar dev server
@@ -495,7 +495,7 @@ curl http://localhost:5000/health
 
 2. Verificar variable de entorno en frontend:
 ```env
-# frontend/.env.local
+# src/web/.env.local
 VITE_API_BASE_URL=http://localhost:5000
 ```
 

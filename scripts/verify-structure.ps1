@@ -37,7 +37,7 @@ $requiredFolders = @(
     "backend/src/Domain",
     "backend/src/Infrastructure",
     "worker/src",
-    "frontend"
+    "src/web"
 )
 
 $missingFiles = @()

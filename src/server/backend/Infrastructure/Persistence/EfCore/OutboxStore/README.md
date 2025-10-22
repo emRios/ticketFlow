@@ -1,31 +1,94 @@
-# Persistencia del Outbox (Outbox Store)
+# 📦 Outbox Pattern - Configuración EF Core
 
-Esta capa es responsable de la persistencia de los mensajes del Outbox usando Entity Framework Core.
+## 📁 Archivos Creados
 
-### Esquema Conceptual
+### Entidades (`Infrastructure/Outbox/`)
 
-El esquema se basa en dos tablas principales para gestionar el estado de los eventos y garantizar el procesamiento "at-least-once".
+1. **OutboxMessage.cs**
+   - Almacena eventos de dominio para procesamiento asíncrono
+   - Propiedades:
+     - `Id`: GUID único
+     - `Type`: Tipo de evento (ej: "TicketCreated")
+     - `PayloadJson`: Evento serializado en JSON
+     - `OccurredAt`: Timestamp del evento
+     - `CorrelationId`: ID para rastreo distribuido
+     - `DispatchedAt`: NULL si pendiente, timestamp si despachado
+     - `Attempts`: Contador de reintentos
+     - `Error`: Último mensaje de error
 
-1.  **`Outbox`**: Almacena los eventos de dominio que deben ser publicados.
-2.  **`ProcessedEvents`**: Funciona como un registro de idempotencia para los consumidores, guardando los eventos que ya han sido procesados por un consumidor específico.
+2. **ProcessedEvent.cs**
+   - Registro de eventos procesados (prevención de duplicados)
+   - Propiedades:
+     - `EventId`: ID del evento procesado (PK)
+     - `ProcessedAt`: Timestamp de procesamiento
 
-### Responsabilidades del Store
+### Configuraciones EF Core (`Persistence/EfCore/OutboxStore/`)
 
-- **Leer**: Proveer métodos para que el Dispatcher lea los mensajes no procesados de la tabla `Outbox`.
-- **Marcar**: Marcar mensajes como "procesados" o incrementar su contador de reintentos (`Attempts`).
-- **Retry**: Implementar la lógica para seleccionar eventos que necesitan un reintento basado en su estado y número de intentos.
+1. **OutboxMessageConfiguration.cs**
+   - Tabla: `OutboxMessages`
+   - Índices optimizados:
+     - `IX_OutboxMessages_Pending`: Buscar mensajes sin despachar
+     - `IX_OutboxMessages_Type`: Filtrar por tipo de evento
+     - `IX_OutboxMessages_CorrelationId`: Rastreo de flujos
+     - `IX_OutboxMessages_DispatchedAt`: Auditoría de despachados
 
-### Diagrama de Tablas
+2. **ProcessedEventConfiguration.cs**
+   - Tabla: `ProcessedEvents`
+   - Índice:
+     - `IX_ProcessedEvents_ProcessedAt`: Limpieza y auditoría
 
-```ascii
-+------------------+      +---------------------+
-|   Outbox         |      |   ProcessedEvents   |
-+------------------+      +---------------------+
-| EventId (PK)     |      | EventId (PK, FK)    |
-| EventType        |      | ConsumerId (PK)     |
-| EventPayload     |      | ProcessedAt         |
-| OccurredAt       |      +---------------------+
-| IsProcessed      |
-| Attempts         |
-+------------------+
+## 🔧 Integración con DbContext
+
+Agregar en tu `AppDbContext`:
+
+```csharp
+public DbSet<OutboxMessage> OutboxMessages { get; set; }
+public DbSet<ProcessedEvent> ProcessedEvents { get; set; }
+
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
+    modelBuilder.ApplyConfiguration(new ProcessedEventConfiguration());
+}
 ```
+
+## 🚀 Próximos Pasos
+
+1. ✅ Crear migración: `dotnet ef migrations add AddOutboxTables`
+2. ✅ Aplicar migración: `dotnet ef database update`
+3. ⏳ Implementar OutboxRepository
+4. ⏳ Crear background worker para despachar mensajes
+5. ⏳ Integrar con eventos de dominio
+
+## 📊 Esquema de Base de Datos
+
+### OutboxMessages
+```sql
+CREATE TABLE OutboxMessages (
+    Id UNIQUEIDENTIFIER PRIMARY KEY,
+    Type NVARCHAR(200) NOT NULL,
+    PayloadJson TEXT NOT NULL,
+    OccurredAt DATETIME2 NOT NULL,
+    CorrelationId NVARCHAR(100),
+    DispatchedAt DATETIME2,
+    Attempts INT NOT NULL DEFAULT 0,
+    Error NVARCHAR(2000)
+);
+
+-- Índice para mensajes pendientes
+CREATE INDEX IX_OutboxMessages_Pending 
+ON OutboxMessages(DispatchedAt, OccurredAt) 
+WHERE DispatchedAt IS NULL;
+```
+
+### ProcessedEvents
+```sql
+CREATE TABLE ProcessedEvents (
+    EventId UNIQUEIDENTIFIER PRIMARY KEY,
+    ProcessedAt DATETIME2 NOT NULL
+);
+
+CREATE INDEX IX_ProcessedEvents_ProcessedAt 
+ON ProcessedEvents(ProcessedAt);
+```
+

@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "worker", "worker", "{37B733
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EC40241A-0C73-D778-59A2-E1B75EA9E407}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketFlow.Worker", "src\server\worker\TicketFlow.Worker\TicketFlow.Worker.csproj", "{2BA81C1A-93F3-44A9-BBA2-9E5D7CE74814}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketFlow.Worker", "src\server\worker\TicketFlow.Worker.csproj", "{2BA81C1A-93F3-44A9-BBA2-9E5D7CE74814}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Domain", "Domain", "{3FB0B2A3-47C6-7D4C-F0FF-0CC4601B851B}"
 EndProject

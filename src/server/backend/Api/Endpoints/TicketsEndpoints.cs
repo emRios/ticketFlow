@@ -1,4 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using TicketFlow.Api.DTOs;
+using TicketFlow.Application.UseCases.Tickets.Commands.CreateTicket;
+using TicketFlow.Application.UseCases.Tickets.Commands.ChangeTicketStatus;
+using TicketFlow.Application.UseCases.Tickets.Queries.GetTickets;
+using TicketFlow.Application.UseCases.Tickets.Queries.GetTicketById;
 
 namespace TicketFlow.Api.Endpoints;
 
@@ -7,58 +13,134 @@ public static class TicketsEndpoints
     public static void MapTicketsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/tickets")
-            .WithTags("Tickets")
-            .RequireAuthorization();
+            .WithTags("Tickets");
 
-        // GET /api/tickets
-        group.MapGet("/", [Authorize(Roles = "AGENT,ADMIN")] async () =>
+        // GET /api/tickets - Listar tickets
+        group.MapGet("/", async (
+            GetTicketsQueryHandler handler,
+            string? status = null,
+            string? priority = null,
+            string? assignedTo = null) =>
         {
-            // TODO: Implement GetAllTickets using repository
-            var tickets = new[]
-            {
-                new { Id = 1, Title = "Ticket 1", Status = "OPEN", Priority = "HIGH" },
-                new { Id = 2, Title = "Ticket 2", Status = "IN_PROGRESS", Priority = "MEDIUM" }
-            };
-            return Results.Ok(tickets);
+            var query = new GetTicketsQuery(status, priority, assignedTo);
+            var tickets = await handler.HandleAsync(query);
+
+            var response = tickets.Select(t => new TicketResponse(
+                Id: t.Id,
+                Title: t.Title,
+                Description: t.Description,
+                CreatedAt: t.CreatedAt
+            ));
+
+            return Results.Ok(response);
         })
-        .WithName("GetAllTickets")
-        .WithOpenApi();
+        .WithName("GetTickets")
+        .WithOpenApi()
+        .Produces<IEnumerable<TicketResponse>>(200)
+        .Produces(401);
 
-        // POST /api/tickets
-        group.MapPost("/", [Authorize(Roles = "AGENT,ADMIN")] async (CreateTicketRequest request) =>
+        // POST /api/tickets - Crear ticket
+        group.MapPost("/", async (
+            CreateTicketHandler handler,
+            CreateTicketRequest request) =>
         {
-            // TODO: Implement CreateTicket using use case
-            var ticket = new
-            {
-                Id = new Random().Next(1000, 9999),
-                request.Title,
-                request.Description,
-                Status = "OPEN",
-                Priority = request.Priority ?? "MEDIUM",
-                CreatedAt = DateTime.UtcNow
-            };
-            return Results.Created($"/api/tickets/{ticket.Id}", ticket);
+            if (string.IsNullOrWhiteSpace(request.Title))
+                return Results.BadRequest(new ErrorResponse("Title es requerido"));
+
+            var userId = "test-user"; // Usuario de prueba
+
+            var command = new CreateTicketCommand(
+                Title: request.Title,
+                Description: request.Description,
+                Priority: request.Priority,
+                CreatedBy: userId
+            );
+
+            var ticket = await handler.HandleAsync(command);
+
+            var response = new TicketResponse(
+                Id: ticket.Id,
+                Title: ticket.Title,
+                Description: ticket.Description,
+                CreatedAt: ticket.CreatedAt
+            );
+
+            return Results.Created($"/api/tickets/{ticket.Id}", response);
         })
         .WithName("CreateTicket")
-        .WithOpenApi();
+        .WithOpenApi()
+        .Produces<TicketResponse>(201)
+        .Produces<ErrorResponse>(400)
+        .Produces(401);
 
-        // PATCH /api/tickets/{id}/status
-        group.MapPatch("/{id:int}/status", [Authorize(Roles = "AGENT,ADMIN")] async (int id, UpdateTicketStatusRequest request) =>
+        // PATCH /api/tickets/{id}/status - Cambiar estado
+        group.MapPatch("/{id:guid}/status", [Authorize(Roles = "AGENT,ADMIN")] async (
+            ClaimsPrincipal user,
+            ChangeTicketStatusHandler handler,
+            Guid id,
+            ChangeStatusRequest request) =>
         {
-            // TODO: Implement UpdateTicketStatus using use case
-            var ticket = new
+            try
             {
-                Id = id,
-                Status = request.Status,
-                UpdatedAt = DateTime.UtcNow
-            };
-            return Results.Ok(ticket);
+                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                    ?? user.FindFirst("sub")?.Value 
+                    ?? "system";
+
+                var command = new ChangeTicketStatusCommand(
+                    TicketId: id,
+                    NewStatus: request.Status,
+                    ChangedBy: userId
+                );
+
+                await handler.HandleAsync(command);
+
+                return Results.NoContent();
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("no encontrado"))
+            {
+                return Results.NotFound(new ErrorResponse("Ticket no encontrado"));
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("transición inválida"))
+            {
+                return Results.BadRequest(new ErrorResponse("Transición de estado inválida", ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new ErrorResponse("Estado inválido", ex.Message));
+            }
         })
         .WithName("UpdateTicketStatus")
-        .WithOpenApi();
+        .WithOpenApi()
+        .Produces(204)
+        .Produces<ErrorResponse>(400)
+        .Produces<ErrorResponse>(404)
+        .Produces(401);
+
+        // GET /api/tickets/{id} - Obtener ticket por ID
+        group.MapGet("/{id:guid}", [Authorize] async (
+            GetTicketByIdQueryHandler handler,
+            Guid id) =>
+        {
+            var query = new GetTicketByIdQuery(id);
+            var ticket = await handler.HandleAsync(query);
+
+            if (ticket == null)
+                return Results.NotFound(new ErrorResponse("Ticket no encontrado"));
+
+            var response = new TicketResponse(
+                Id: ticket.Id,
+                Title: ticket.Title,
+                Description: ticket.Description,
+                CreatedAt: ticket.CreatedAt
+            );
+
+            return Results.Ok(response);
+        })
+        .WithName("GetTicketById")
+        .WithOpenApi()
+        .Produces<TicketResponse>(200)
+        .Produces<ErrorResponse>(404)
+        .Produces(401);
     }
 }
 
-// DTOs
-public record CreateTicketRequest(string Title, string Description, string? Priority);
-public record UpdateTicketStatusRequest(string Status);

@@ -1,9 +1,29 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using TicketFlow.Api.Auth;
 using TicketFlow.Api.Endpoints;
 using TicketFlow.Api.Extensions;
+using TicketFlow.Application.Interfaces;
+using TicketFlow.Application.UseCases.Tickets.Commands.CreateTicket;
+using TicketFlow.Application.UseCases.Tickets.Commands.ChangeTicketStatus;
+using TicketFlow.Application.UseCases.Tickets.Queries.GetTickets;
+using TicketFlow.Application.UseCases.Tickets.Queries.GetTicketById;
+using TicketFlow.Infrastructure.Persistence;
+using TicketFlow.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar CORS para desarrollo
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
@@ -48,11 +68,33 @@ builder.Services.AddSwaggerGen(options =>
 // Configurar autenticación JWT
 builder.Services.AddAuthServices(builder.Configuration);
 
-// Configurar servicios de la aplicación
-// builder.Services.AddApplicationServices();
-// builder.Services.AddInfrastructureServices(builder.Configuration);
+// Configurar DbContext con PostgreSQL
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<TicketFlowDbContext>(options =>
+    options.UseNpgsql(connectionString, o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+
+// Registrar repositorios e infraestructura
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Registrar handlers de Application Layer
+builder.Services.AddScoped<CreateTicketHandler>();
+builder.Services.AddScoped<ChangeTicketStatusHandler>();
+builder.Services.AddScoped<GetTicketsQueryHandler>();
+builder.Services.AddScoped<GetTicketByIdQueryHandler>();
 
 var app = builder.Build();
+
+// TODO: Aplicar migraciones automáticamente en Development
+// Comentado temporalmente por incompatibilidad de versiones de Npgsql
+// if (app.Environment.IsDevelopment())
+// {
+//     using var scope = app.Services.CreateScope();
+//     var db = scope.ServiceProvider.GetRequiredService<TicketFlowDbContext>();
+//     await db.Database.MigrateAsync();
+// }
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -66,6 +108,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Habilitar CORS
+app.UseCors("AllowFrontend");
+
 // Middleware de autenticación y autorización
 app.UseAuthentication();
 app.UseAuthorization();
@@ -73,6 +118,23 @@ app.UseAuthorization();
 // Map endpoints
 app.MapTicketsEndpoints();
 app.MapUsersEndpoints();
+
+// Health check endpoint (para Docker healthcheck)
+app.MapGet("/health", () => Results.Ok(new 
+{ 
+    status = "Healthy",
+    service = "TicketFlow API",
+    timestamp = DateTime.UtcNow,
+    environment = app.Environment.EnvironmentName
+}))
+.WithName("HealthCheck")
+.WithTags("Health")
+.Produces(200)
+.WithOpenApi(operation => new(operation)
+{
+    Summary = "Health Check",
+    Description = "Verifica que la API esté funcionando correctamente"
+});
 
 app.Run();
 

@@ -1,11 +1,12 @@
-using TicketFlow.Application.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
+using TicketFlow.Application.Interfaces;
 using TicketFlow.Domain.Entities;
 using TicketFlow.Infrastructure.Persistence;
 
 namespace TicketFlow.Infrastructure.Repositories;
 
 /// <summary>
-/// Implementación del repositorio de Tickets
+/// Implementación del repositorio de Tickets usando EF Core
 /// </summary>
 public class TicketRepository : ITicketRepository
 {
@@ -16,35 +17,33 @@ public class TicketRepository : ITicketRepository
         _context = context;
     }
 
-    public async Task<Ticket?> GetByIdAsync(Guid id)
+    public async Task<Ticket?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Implementar con EF Core
-        await Task.CompletedTask;
-        return null;
+        return await _context.Tickets
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
     }
 
-    public async Task<IEnumerable<Ticket>> GetAllAsync()
+    public async Task<List<Ticket>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
-        return Array.Empty<Ticket>();
+        return await _context.Tickets
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task AddAsync(Ticket ticket)
+    public async Task AddAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
+        await _context.Tickets.AddAsync(ticket, cancellationToken);
     }
 
-    public async Task UpdateAsync(Ticket ticket)
+    public Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
+        _context.Tickets.Update(ticket);
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public Task DeleteAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
+        _context.Tickets.Remove(ticket);
+        return Task.CompletedTask;
     }
 }
