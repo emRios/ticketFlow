@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TicketFlow – Historial de Actividad</title>
+  <script>
+    (function() {
+      const userId = localStorage.getItem('ticketflow_userId');
+      const role = localStorage.getItem('ticketflow_role');
+      const loginPath = new URL('./login.html', location.href).pathname;
+      if (!userId || !role) {
+        sessionStorage.setItem('ticketflow_redirecting', '1');
+        window.location.replace(loginPath);
+        return;
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="../../packages/board-adapter-vanilla/styles.css" />
+  <style>
+    body { font-family: ui-sans-serif, system-ui; margin: 0; background: #f9fafb; }
+    .page { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; background: #fff; }
+    .btn { padding: 8px 14px; border-radius: 6px; border: 1px solid #e3e3e8; cursor: pointer; font-weight: 500; background: #fff; }
+    .btn:hover { background: #f3f4f6; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; font-size: 12px; }
+    
+    .ticket-info { margin-bottom: 24px; }
+    .ticket-info h2 { margin: 0 0 8px 0; font-size: 24px; color: #111827; }
+    .ticket-info .meta { font-size: 14px; color: #6b7280; }
+    
+    .activity-table { width: 100%; border-collapse: collapse; }
+    .activity-table thead { background: #f9fafb; }
+    .activity-table th { text-align: left; padding: 12px; font-weight: 600; font-size: 13px; color: #374151; border-bottom: 2px solid #e5e7eb; }
+    .activity-table td { padding: 12px; font-size: 14px; color: #111827; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .activity-table tbody tr:hover { background: #fafafa; }
+    
+    .activity-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; }
+    .activity-icon.created { background: #dbeafe; }
+    .activity-icon.assigned { background: #fef3c7; }
+    .activity-icon.status { background: #d1fae5; }
+    
+    .action-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .action-badge.created { background: #dbeafe; color: #1e40af; }
+    .action-badge.assigned { background: #fef3c7; color: #92400e; }
+    .action-badge.status { background: #d1fae5; color: #065f46; }
+    
+    .detail-item { margin: 4px 0; }
+    .detail-label { font-weight: 600; color: #6b7280; font-size: 12px; text-transform: uppercase; }
+    .detail-value { color: #111827; }
+    
+    .empty-state { text-align: center; padding: 48px 24px; color: #9ca3af; }
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+    
+    .loading { text-align: center; padding: 48px 24px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="toolbar">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn" id="btn-back">← Volver al Ticket</button>
+        <button class="btn secondary" id="btn-back-board">← Volver al Tablero</button>
+      </div>
+      <div id="user-info" class="pill"></div>
+    </div>
+
+    <div class="card ticket-info">
+      <h2 id="ticket-title">Historial de Actividad</h2>
+      <div class="meta">
+        <span id="ticket-id"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0;">📋 Registro Completo de Transiciones</h3>
+      
+      <div id="activity-loading" class="loading">
+        <div>⏳ Cargando historial...</div>
+      </div>
+
+      <div id="activity-empty" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📭</div>
+        <div>No hay actividad registrada para este ticket</div>
+      </div>
+
+      <div id="activity-container" style="display: none; overflow-x: auto;">
+        <table class="activity-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;"></th>
+              <th>Acción</th>
+              <th>Fecha y Hora</th>
+              <th style="width: 120px;">Tiempo en Estado</th>
+              <th>Usuario</th>
+              <th style="width: 25%;">Detalles</th>
+              <th style="width: 25%;">Comentarios</th>
+            </tr>
+          </thead>
+          <tbody id="activity-tbody">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./pages/activity.ts"></script>
+</body>
+</html>

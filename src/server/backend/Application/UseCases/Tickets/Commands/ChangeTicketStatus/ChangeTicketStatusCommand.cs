@@ -6,5 +6,6 @@ namespace TicketFlow.Application.UseCases.Tickets.Commands.ChangeTicketStatus;
 public record ChangeTicketStatusCommand(
     Guid TicketId,
     string NewStatus,
-    string ChangedBy
+    string ChangedBy,
+    string? Comment = null
 );

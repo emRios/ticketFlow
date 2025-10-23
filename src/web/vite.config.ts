@@ -1,13 +1,21 @@
 import { defineConfig } from 'vite';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { resolve } from 'path';
 
 export default defineConfig({
   root: 'apps/demo-vanilla',
   server: { port: 5173 },
+  build: {
+    rollupOptions: {
+      input: {
+        index: resolve(__dirname, './apps/demo-vanilla/index.html'),
+        ticket: resolve(__dirname, './apps/demo-vanilla/ticket.html'),
+        admin: resolve(__dirname, './apps/demo-vanilla/admin.html'),
+        activity: resolve(__dirname, './apps/demo-vanilla/activity.html'),
+        login: resolve(__dirname, './apps/demo-vanilla/login.html'),
+        'client-form': resolve(__dirname, './apps/demo-vanilla/client-form.html')
+      }
+    }
+  },
   resolve: {
     alias: {
       '@ticketflow/domain-core': resolve(__dirname, './packages/domain-core'),

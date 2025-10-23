@@ -7,29 +7,23 @@ import { apiFetch } from './apiClient';
  */
 export async function updateTicketStatus(
   ticketId: string,
-  newStatus: string
+  newStatus: string,
+  comment?: string
 ): Promise<void> {
   try {
-    // Extraer el ID numérico del formato TF-123
-    const id = ticketId.replace('TF-', '');
+    // ticketId ya es un UUID directo desde el backend
     
-    // Mapear columnId del frontend a status del backend
-    const statusMapping: Record<string, string> = {
-      'nuevo': 'OPEN',
-      'en-proceso': 'IN_PROGRESS',
-      'en-espera': 'WAITING',
-      'resuelto': 'RESOLVED',
-      'cerrado': 'CLOSED'
-    };
+    // Mapear columnId del frontend a status del backend (español canónico)
+    const normalized = (newStatus || '').toLowerCase();
+    const allowed = ['nuevo', 'en-proceso', 'en-espera', 'resuelto', 'cerrado'];
+    const backendStatus = allowed.includes(normalized) ? normalized : 'nuevo';
     
-    const backendStatus = statusMapping[newStatus] || 'OPEN';
-    
-    await apiFetch<void>(`/api/tickets/${id}/status`, {
+    await apiFetch<void>(`/api/tickets/${ticketId}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: backendStatus })
+      body: JSON.stringify({ status: backendStatus, comment })
     });
     
-    console.log(`✅ Ticket ${ticketId} actualizado a ${newStatus}`);
+  console.log(`✅ Ticket ${ticketId} actualizado a ${backendStatus}`);
   } catch (error) {
     console.error(`Error actualizando ticket ${ticketId}:`, error);
     throw error;
@@ -43,9 +37,9 @@ export async function createTicket(data: {
   title: string;
   description: string;
   priority?: string;
-}): Promise<{ id: number }> {
+}): Promise<{ id: string }> {
   try {
-    return await apiFetch<{ id: number }>('/api/tickets', {
+    return await apiFetch<{ id: string }>('/api/tickets', {
       method: 'POST',
       body: JSON.stringify(data)
     });

@@ -1,17 +1,19 @@
 // Mappers para convertir DTOs del backend al formato del frontend
 
 import type { TicketDTO, ColumnDTO } from './board';
+import { appConfig } from '../config/app-config';
 import type { CurrentUser } from './me';
 
 // ========== Backend DTOs ==========
 
 export interface TicketResponse {
-  id: number;
+  id: string; // UUID from backend
   title: string;
   description: string;
   status: string;
   priority: string;
   assignedTo: string | null;
+  assignedToName: string | null;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -29,14 +31,26 @@ export interface UserResponse {
  * Mapea el status del backend al columnId del frontend
  */
 function mapStatusToColumnId(status: string): string {
+  // Normalizamos: admitimos español (canon), inglés legacy y variantes
+  const s = (status || '').toLowerCase();
   const mapping: Record<string, string> = {
-    'OPEN': 'nuevo',
-    'IN_PROGRESS': 'en-proceso',
-    'WAITING': 'en-espera',
-    'RESOLVED': 'resuelto',
-    'CLOSED': 'cerrado'
+    // Español canónico
+    'nuevo': 'nuevo',
+    'en-proceso': 'en-proceso',
+    'en_proceso': 'en-proceso',
+    'en espera': 'en-espera',
+    'en-espera': 'en-espera',
+    'resuelto': 'resuelto',
+    'cerrado': 'cerrado',
+    // Inglés legacy
+    'open': 'nuevo',
+    'in_progress': 'en-proceso',
+    'in-progress': 'en-proceso',
+    'waiting': 'en-espera',
+    'resolved': 'resuelto',
+    'closed': 'cerrado'
   };
-  return mapping[status] || 'nuevo';
+  return mapping[s] || 'nuevo';
 }
 
 /**
@@ -51,13 +65,13 @@ export function mapTicketResponseToDTO(ticket: TicketResponse, index: number): T
   };
   
   return {
-    id: `TF-${ticket.id}`,
+    id: ticket.id, // UUID directo desde el backend
     title: ticket.title,
     columnId: mapStatusToColumnId(ticket.status),
     order: index,
     assignee: ticket.assignedTo ? {
       id: ticket.assignedTo,
-      name: ticket.assignedTo.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      name: ticket.assignedToName || ticket.assignedTo.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase())
     } : undefined,
     requester: {
       id: 'unknown',
@@ -70,12 +84,13 @@ export function mapTicketResponseToDTO(ticket: TicketResponse, index: number): T
     }] : [],
     updatedAt: ticket.updatedAt || ticket.createdAt,
     capabilities: {
+      // Valores por defecto; se ajustan en api/board según permisos y scope
       move: true,
       reorder: true,
       assign: true,
       addTag: true,
       removeTag: true,
-      allowedTransitions: ['nuevo', 'en-proceso', 'en-espera', 'resuelto']
+      allowedTransitions: appConfig.fsm[mapStatusToColumnId(ticket.status)] ?? []
     }
   };
 }

@@ -45,7 +45,8 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox.Outbox
         // Índice compuesto para buscar mensajes pendientes
         builder.HasIndex(x => new { x.DispatchedAt, x.OccurredAt })
             .HasDatabaseName("IX_OutboxMessages_Pending")
-            .HasFilter("[DispatchedAt] IS NULL"); // Solo mensajes sin despachar
+            // Postgres syntax (double quotes for case-sensitive identifiers)
+            .HasFilter("\"DispatchedAt\" IS NULL"); // Solo mensajes sin despachar
 
         // Índice para búsqueda por tipo
         builder.HasIndex(x => x.Type)
@@ -54,11 +55,11 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox.Outbox
         // Índice para rastreo de correlación
         builder.HasIndex(x => x.CorrelationId)
             .HasDatabaseName("IX_OutboxMessages_CorrelationId")
-            .HasFilter("[CorrelationId] IS NOT NULL");
+            .HasFilter("\"CorrelationId\" IS NOT NULL");
 
         // Índice para mensajes despachados (consultas de auditoría)
         builder.HasIndex(x => x.DispatchedAt)
             .HasDatabaseName("IX_OutboxMessages_DispatchedAt")
-            .HasFilter("[DispatchedAt] IS NOT NULL");
+            .HasFilter("\"DispatchedAt\" IS NOT NULL");
     }
 }

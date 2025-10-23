@@ -16,7 +16,7 @@ export type TicketCache = {
 export type BoardHandlers = {
   onMove: (cmd: { ticketId: string; from: string; to: string; newIndex: number }) => Promise<void>;
   onReorder: (cmd: { ticketId: string; columnId: string; newIndex: number }) => Promise<void>;
-  onAssignTicket?: (cmd: { ticketId: string; assigneeId: string }) => Promise<void>;
+  onAssignTicket?: (cmd: { ticketId: string; assigneeId: string; note?: string }) => Promise<void>;
   onAddTagToTicket?: (cmd: { ticketId: string; tagId: string }) => Promise<void>;
   onRemoveTagFromTicket?: (cmd: { ticketId: string; tagId: string }) => Promise<void>;
 };
@@ -27,8 +27,11 @@ export type BoardHandlers = {
  * @param ticketsCache - Cache de tickets con capabilities para validación
  * @param onReload - Callback para recargar el tablero después de una operación
  */
+import { updateTicketStatus } from '../api/tickets';
+import { apiFetch } from '../api/apiClient';
+
 export function createBoardHandlers(
-  ticketsCache: TicketCache[],
+  ticketsCacheGetter: () => TicketCache[],
   onReload: () => Promise<void>
 ): BoardHandlers {
   
@@ -39,7 +42,8 @@ export function createBoardHandlers(
     ticketId: string, 
     capability: 'move' | 'reorder'
   ): TicketCache | null {
-    const ticket = ticketsCache.find(t => t.id === ticketId);
+    const cache = ticketsCacheGetter();
+    const ticket = cache.find(t => t.id === ticketId);
     
     if (!ticket) {
       console.error(`[handlers] Ticket ${ticketId} no encontrado en cache`);
@@ -71,15 +75,38 @@ export function createBoardHandlers(
         alert('Transición no permitida según las reglas de estado del ticket');
         return;
       }
-      
-      // TODO: Implementar cuando el backend esté disponible
-      // await fetch(`/api/tickets/${cmd.ticketId}/move`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ to: cmd.to, newIndex: cmd.newIndex })
-      // });
-      // await onReload();
-      
-      console.warn('[onMove] No implementado aún - requiere backend');
+
+      // REGLA: Verificar si el estado actual tiene comentarios
+      try {
+        // Obtener actividades del ticket
+        const activities = await apiFetch<any[]>(`/api/tickets/${cmd.ticketId}/activity`, { method: 'GET' });
+        
+        // Encontrar la última actividad de cambio de estado (estado actual)
+        const lastStatusChange = [...activities]
+          .reverse()
+          .find(a => a.action === 'TicketStatusChanged' || a.action === 'TicketCreated');
+        
+        // Si existe un estado actual y NO tiene comentarios, redirigir a detalle
+        if (lastStatusChange && (!lastStatusChange.comment || lastStatusChange.comment.trim() === '')) {
+          const shouldNavigate = confirm(
+            `⚠️ El estado actual no tiene comentarios.\n\n` +
+            `Para mantener la trazabilidad completa, debes agregar un comentario antes de cambiar de estado.\n\n` +
+            `¿Deseas ir a la página de detalle del ticket para agregar comentarios?`
+          );
+          
+          if (shouldNavigate) {
+            window.location.href = `./ticket.html?id=${cmd.ticketId}`;
+          }
+          return;
+        }
+
+        // Si hay comentarios, permitir el cambio de estado
+        await updateTicketStatus(cmd.ticketId, cmd.to);
+        await onReload();
+      } catch (error) {
+        console.error('[onMove] Error al actualizar estado:', error);
+        alert('No se pudo mover el ticket. Revisa la consola.');
+      }
     },
     
     /**
@@ -91,14 +118,8 @@ export function createBoardHandlers(
       const ticket = getTicketWithCapabilities(cmd.ticketId, 'reorder');
       if (!ticket) return;
       
-      // TODO: Implementar cuando el backend esté disponible
-      // await fetch(`/api/tickets/${cmd.ticketId}/reorder`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ newIndex: cmd.newIndex })
-      // });
-      // await onReload();
-      
-      console.warn('[onReorder] No implementado aún - requiere backend');
+      // Backend aún no soporta orden; solo recargamos para reflejar posición
+      await onReload();
     },
     
     /**
@@ -106,15 +127,17 @@ export function createBoardHandlers(
      */
     async onAssignTicket(cmd) {
       console.log('[onAssignTicket]', cmd);
-      
-      // TODO: Implementar cuando el backend esté disponible
-      // await fetch(`/api/tickets/${cmd.ticketId}/assign`, {
-      //   method: 'POST',
-      //   body: JSON.stringify({ assigneeId: cmd.assigneeId })
-      // });
-      // await onReload();
-      
-      console.warn('[onAssignTicket] No implementado aún - requiere backend');
+      try {
+        await apiFetch(`/api/tickets/${cmd.ticketId}/assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assigneeId: cmd.assigneeId, reason: cmd.note })
+        });
+        await onReload();
+      } catch (error) {
+        console.error('[onAssignTicket] Error:', error);
+        alert('No se pudo asignar el ticket. Revisa la consola.');
+      }
     },
     
     /**

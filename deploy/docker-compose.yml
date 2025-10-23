@@ -52,6 +52,30 @@ services:
     networks:
       - ticketflow-network
 
+  # Dev helper: crea cola de depuración y binding al exchange 'tickets'
+  rabbitmq-debug-setup:
+    image: curlimages/curl:8.7.1
+    container_name: ticketflow-rabbitmq-debug-setup
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    command: >-
+      sh -c "
+      echo '⏳ Esperando RabbitMQ...';
+      until curl -sf http://rabbitmq:15672/api/healthchecks/node >/dev/null; do sleep 2; done;
+      echo '⏳ Esperando exchange tickets...';
+      until curl -sf -u ticketflow_user:ticketflow_pass http://rabbitmq:15672/api/exchanges/%2f/tickets >/dev/null; do sleep 2; done;
+      echo '🛠️  Creando cola debug.tickets y binding ticket.# -> tickets';
+      curl -s -u ticketflow_user:ticketflow_pass -H 'content-type: application/json' -XPUT http://rabbitmq:15672/api/queues/%2f/debug.tickets -d '{"durable":true}';
+      curl -s -u ticketflow_user:ticketflow_pass -H 'content-type: application/json' -XPOST http://rabbitmq:15672/api/bindings/%2f/e/tickets/q/debug.tickets -d '{"routing_key":"ticket.#","arguments":{}}';
+      echo '✅ Listo: cola debug.tickets enlazada a exchange tickets';
+      "
+    networks:
+      - ticketflow-network
+    restart: "no"
+
   # ============================================
   # APPLICATION SERVICES
   # ============================================

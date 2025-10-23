@@ -39,6 +39,14 @@ export function clearAuthToken(): void {
 }
 
 /**
+ * Obtiene el userId persistido (dev) para enviar como X-UserId
+ * Se establece después de la primera llamada a /api/me
+ */
+export function getUserId(): string | null {
+  return localStorage.getItem('user_id');
+}
+
+/**
  * Clase de error personalizada para respuestas HTTP no exitosas
  */
 export class ApiError extends Error {
@@ -86,6 +94,7 @@ export async function apiFetch<T>(
   
   // Obtener token JWT
   const token = getToken();
+  const userId = getUserId();
   
   // Preparar headers
   const headers: Record<string, string> = {
@@ -95,6 +104,10 @@ export async function apiFetch<T>(
   // Agregar Authorization header si el token está disponible
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Agregar X-UserId si está disponible (flujo dev sin JWT)
+  if (userId) {
+    headers['X-UserId'] = userId;
   }
   
   // Agregar Content-Type para POST y PATCH si no existe

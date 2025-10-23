@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketFlow - Nuevo Ticket</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 24px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-badge {
+            background: #e0e7ff;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .btn-logout {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #dc2626;
+        }
+
+        .form-container {
+            background: white;
+            padding: 32px;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        label .required {
+            color: #ef4444;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .priority-select {
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border: 2px solid #ef4444;
+        }
+
+        .alert h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .alert p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .ticket-id {
+            font-family: 'Courier New', monospace;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .helper-text {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 Nuevo Ticket</h1>
+            <div class="user-info">
+                <span class="user-badge" id="userName">Cargando...</span>
+                <button class="btn-logout" onclick="logout()">Salir</button>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <div id="successAlert" class="alert alert-success">
+                <h3>✓ ¡Ticket creado exitosamente!</h3>
+                <p>
+                    Tu ticket ha sido registrado con el ID: <span class="ticket-id" id="createdTicketId"></span><br>
+                    <span id="assignmentInfo"></span><br>
+                    Un agente se pondrá en contacto contigo pronto.
+                </p>
+            </div>
+
+            <div id="errorAlert" class="alert alert-error">
+                <h3>✗ Error al crear ticket</h3>
+                <p id="errorMessage"></p>
+            </div>
+
+            <form id="ticketForm">
+                <div class="form-group">
+                    <label for="title">
+                        Título del Ticket <span class="required">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        name="title" 
+                        placeholder="Resumen breve de tu problema"
+                        required
+                        maxlength="255"
+                    >
+                    <p class="helper-text">Describe tu problema en pocas palabras</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">
+                        Descripción Detallada <span class="required">*</span>
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        placeholder="Describe tu problema con el mayor detalle posible..."
+                        required
+                    ></textarea>
+                    <p class="helper-text">Proporciona todos los detalles relevantes</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="priority">
+                        Prioridad <span class="required">*</span>
+                    </label>
+                    <select id="priority" name="priority" class="priority-select" required>
+                        <option value="baja">🟢 Baja - No es urgente</option>
+                        <option value="media" selected>🟡 Media - Atención normal</option>
+                        <option value="alta">🔴 Alta - Requiere atención pronto</option>
+                    </select>
+                    <p class="helper-text">Selecciona la urgencia de tu solicitud</p>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitButton">
+                    <span id="buttonText">Crear Ticket</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        const API_BASE_URL = 'http://localhost:5076/api';
+
+        // Verificar autenticación
+        const userId = localStorage.getItem('ticketflow_userId');
+        const role = localStorage.getItem('ticketflow_role');
+        const username = localStorage.getItem('ticketflow_username');
+
+        // Evitar bucles de redirección
+        const here = location.pathname;
+        const loginPath = new URL('./login.html', location.href).pathname;
+        const boardPath = new URL('./index.html', location.href).pathname;
+        if (!userId || !role) {
+            if (here !== loginPath) {
+                sessionStorage.setItem('ticketflow_redirecting', '1');
+                window.location.replace(loginPath);
+            }
+        } else if (role.toUpperCase() !== 'CLIENT') {
+            if (here !== boardPath) {
+                sessionStorage.setItem('ticketflow_redirecting', '1');
+                window.location.replace(boardPath);
+            }
+        } else {
+            sessionStorage.removeItem('ticketflow_redirecting');
+        }
+
+        // Mostrar nombre de usuario
+        document.getElementById('userName').textContent = username || 'Cliente';
+
+        // Elementos del DOM
+        const form = document.getElementById('ticketForm');
+        const submitButton = document.getElementById('submitButton');
+        const buttonText = document.getElementById('buttonText');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value.trim(),
+                description: document.getElementById('description').value.trim(),
+                priority: document.getElementById('priority').value
+            };
+
+            await createTicket(formData);
+        });
+
+        async function createTicket(data) {
+            try {
+                // Deshabilitar botón y mostrar loading
+                submitButton.disabled = true;
+                buttonText.innerHTML = 'Creando ticket<span class="loading-spinner"></span>';
+                hideAlerts();
+
+                const response = await fetch(`${API_BASE_URL}/tickets`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-UserId': userId
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error al crear el ticket');
+                }
+
+                const result = await response.json();
+
+                // Mostrar éxito
+                document.getElementById('createdTicketId').textContent = result.id;
+                
+                // Información de asignación
+                const assignmentInfo = document.getElementById('assignmentInfo');
+                if (result.autoAssigned && result.assignedTo) {
+                    assignmentInfo.innerHTML = '<strong>✓ Ticket asignado automáticamente a un agente disponible.</strong>';
+                } else if (result.assignmentReason) {
+                    assignmentInfo.innerHTML = `<em>Tu ticket será asignado próximamente (${result.assignmentReason}).</em>`;
+                } else {
+                    assignmentInfo.innerHTML = '<em>Tu ticket está en cola para ser asignado.</em>';
+                }
+
+                successAlert.classList.add('show');
+                
+                // Resetear formulario
+                form.reset();
+                
+                // Scroll al inicio
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Re-habilitar botón después de mostrar éxito
+                setTimeout(() => {
+                    submitButton.disabled = false;
+                    buttonText.textContent = 'Crear Otro Ticket';
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = error.message || 'Ocurrió un error inesperado';
+                errorAlert.classList.add('show');
+                
+                // Re-habilitar botón
+                submitButton.disabled = false;
+                buttonText.textContent = 'Crear Ticket';
+            }
+        }
+
+        function hideAlerts() {
+            successAlert.classList.remove('show');
+            errorAlert.classList.remove('show');
+        }
+
+        window.logout = function() {
+            if (confirm('¿Seguro que deseas cerrar sesión?')) {
+                localStorage.removeItem('ticketflow_userId');
+                localStorage.removeItem('ticketflow_role');
+                localStorage.removeItem('ticketflow_username');
+                localStorage.removeItem('ticketflow_email');
+                window.location.replace('login.html');
+            }
+        };
+    </script>
+</body>
+</html>

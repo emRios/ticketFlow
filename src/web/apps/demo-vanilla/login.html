@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketFlow - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 420px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #334155;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-login:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .info-text {
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 24px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🎫 TicketFlow</h1>
+            <p>Sistema de Gestión de Tickets</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Correo Electrónico</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="tu@email.com"
+                    required
+                    autocomplete="email"
+                    autofocus
+                >
+            </div>
+
+            <button type="submit" class="btn-login" id="loginButton">
+                <span id="buttonText">Ingresar</span>
+            </button>
+        </form>
+
+        <p class="info-text">
+            💡 Modo desarrollo: Solo ingresa tu email registrado.<br>
+            El sistema detectará tu rol automáticamente.
+        </p>
+    </div>
+
+    <script type="module">
+        const API_BASE_URL = 'http://localhost:5076/api';
+
+        const form = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const loginButton = document.getElementById('loginButton');
+        const buttonText = document.getElementById('buttonText');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Verificar si ya está autenticado
+        const currentUser = localStorage.getItem('ticketflow_userId');
+        const currentRole = localStorage.getItem('ticketflow_role');
+        
+        if (currentUser && currentRole) {
+            const roleUpper = currentRole.toUpperCase();
+            const boardPath = new URL('./index.html', location.href).pathname;
+            const clientFormPath = new URL('./client-form.html', location.href).pathname;
+            const here = location.pathname;
+
+            if ((roleUpper === 'ADMIN' || roleUpper === 'AGENT') && here !== boardPath) {
+                sessionStorage.setItem('ticketflow_redirecting', '1');
+                window.location.replace(boardPath);
+            } else if (roleUpper === 'CLIENT' && here !== clientFormPath) {
+                sessionStorage.setItem('ticketflow_redirecting', '1');
+                window.location.replace(clientFormPath);
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showError('Por favor ingresa tu correo electrónico');
+                return;
+            }
+
+            await handleLogin(email);
+        });
+
+        async function handleLogin(email) {
+            try {
+                // Deshabilitar botón y mostrar loading
+                loginButton.disabled = true;
+                buttonText.innerHTML = 'Ingresando<span class="loading"></span>';
+                hideError();
+
+                // Llamar al endpoint de login
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Usuario no encontrado. Verifica tu correo electrónico.');
+                    }
+                    throw new Error('Error al iniciar sesión. Intenta nuevamente.');
+                }
+
+                const data = await response.json();
+                
+                // Guardar en localStorage
+                localStorage.setItem('ticketflow_userId', data.userId);
+                localStorage.setItem('ticketflow_role', data.role);
+                localStorage.setItem('ticketflow_username', data.username);
+                localStorage.setItem('ticketflow_email', data.email);
+
+                // Mostrar mensaje de éxito
+                buttonText.textContent = '✓ Ingreso exitoso';
+                
+                // Redirigir según rol después de breve pausa
+                setTimeout(() => {
+                    redirectByRole(data.role);
+                }, 300);
+
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError(error.message || 'Error al iniciar sesión');
+                
+                // Re-habilitar botón
+                loginButton.disabled = false;
+                buttonText.textContent = 'Ingresar';
+            }
+        }
+
+        function redirectByRole(role) {
+            const roleUpper = role.toUpperCase();
+            
+            if (roleUpper === 'ADMIN' || roleUpper === 'AGENT') {
+                const boardPath = new URL('./index.html', location.href).pathname;
+                if (location.pathname !== boardPath) {
+                    sessionStorage.setItem('ticketflow_redirecting', '1');
+                    window.location.replace(boardPath);
+                }
+            } else if (roleUpper === 'CLIENT') {
+                const clientFormPath = new URL('./client-form.html', location.href).pathname;
+                if (location.pathname !== clientFormPath) {
+                    sessionStorage.setItem('ticketflow_redirecting', '1');
+                    window.location.replace(clientFormPath);
+                }
+            } else {
+                showError('Rol de usuario no reconocido');
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        // Limpiar error al escribir
+        emailInput.addEventListener('input', hideError);
+    </script>
+</body>
+</html>

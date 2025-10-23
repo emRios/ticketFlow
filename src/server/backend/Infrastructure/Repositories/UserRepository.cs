@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using TicketFlow.Application.Interfaces.Repositories;
 using TicketFlow.Domain.Entities;
 using TicketFlow.Infrastructure.Persistence;
@@ -18,21 +19,26 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByIdAsync(Guid id)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
-        return null;
+        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
-        return null;
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+    }
+
+    public async Task<List<User>> GetByRoleAsync(string role)
+    {
+        return await _context.Users
+            .Where(u => u.Role == role.ToUpper())
+            .OrderBy(u => u.Name)
+            .ToListAsync();
     }
 
     public async Task AddAsync(User user)
     {
-        // TODO: Implementar
-        await Task.CompletedTask;
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
     }
 }
+

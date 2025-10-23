@@ -32,5 +32,32 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(t => t.CreatedAt)
             .HasColumnName("createdat")
             .IsRequired();
+
+        builder.Property(t => t.UpdatedAt)
+            .HasColumnName("updatedat");
+
+        builder.Property(t => t.Status)
+            .HasColumnName("status")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(t => t.Priority)
+            .HasColumnName("priority")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(t => t.AssignedTo)
+            .HasColumnName("assignedto")
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        // Columna Version para control optimista de concurrencia
+        builder.Property(t => t.Version)
+            .HasColumnName("version")
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        // Ignorar eventos de dominio (no se persisten)
+        builder.Ignore(t => t.DomainEvents);
     }
 }

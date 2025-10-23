@@ -194,12 +194,8 @@ public class OutboxProcessor
         Guid messageId,
         CancellationToken cancellationToken)
     {
-        await context.Database.ExecuteSqlRawAsync(@"
-            UPDATE ""OutboxMessages""
-            SET ""DispatchedAt"" = {0}
-            WHERE ""Id"" = {1}",
-            DateTime.UtcNow,
-            messageId,
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $@"UPDATE ""OutboxMessages"" SET ""DispatchedAt"" = {DateTime.UtcNow} WHERE ""Id"" = {messageId}",
             cancellationToken);
     }
 
@@ -234,13 +230,8 @@ public class OutboxProcessor
         // Truncar error a 2000 caracteres (límite de la columna)
         var truncatedError = error.Length > 2000 ? error[..2000] : error;
 
-        await context.Database.ExecuteSqlRawAsync(@"
-            UPDATE ""OutboxMessages""
-            SET ""Attempts"" = ""Attempts"" + 1,
-                ""Error"" = {0}
-            WHERE ""Id"" = {1}",
-            truncatedError,
-            messageId,
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $@"UPDATE ""OutboxMessages"" SET ""Attempts"" = ""Attempts"" + 1, ""Error"" = {truncatedError} WHERE ""Id"" = {messageId}",
             cancellationToken);
     }
 

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TicketFlow – Ticket</title>
+  <script>
+    (function() {
+      const userId = localStorage.getItem('ticketflow_userId');
+      const role = localStorage.getItem('ticketflow_role');
+      const loginPath = new URL('./login.html', location.href).pathname;
+      if (!userId || !role) {
+        sessionStorage.setItem('ticketflow_redirecting', '1');
+        window.location.replace(loginPath);
+        return;
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="../../packages/board-adapter-vanilla/styles.css" />
+  <style>
+    body { font-family: ui-sans-serif,system-ui; margin:0; }
+    .page { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+    .toolbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: 16px; }
+    .card { border:1px solid #e5e7eb; border-radius: 8px; padding:16px; background:#fff; }
+    .row { display:flex; gap: 16px; }
+    .col { flex:1; }
+    .field { margin: 8px 0; }
+    .label { font-size: 12px; color:#6b7280; }
+    .value { font-size: 14px; color:#111827; }
+    .textarea { width:100%; min-height:120px; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
+    .input, select { width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
+    .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    .btn { padding:8px 14px; border-radius:6px; border:1px solid #e3e3e8; cursor:pointer; font-weight:500; }
+    .btn.primary { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+    .btn.secondary { background:#fff; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#f3f4f6; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="toolbar">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn secondary" id="btn-back-board">← Volver al Tablero</button>
+      </div>
+      <div id="user-info" class="pill"></div>
+    </div>
+    <div class="card" id="ticket">
+      <h2 id="t-title">Ticket</h2>
+      <div class="row">
+        <div class="col">
+          <div class="field"><div class="label">ID</div><div class="value" id="t-id"></div></div>
+          <div class="field"><div class="label">Estado</div><div class="value" id="t-status"></div></div>
+          <div class="field"><div class="label">Prioridad</div><div class="value" id="t-priority"></div></div>
+        </div>
+        <div class="col">
+          <div class="field"><div class="label">Asignado a</div><div class="value" id="t-assignee"></div></div>
+          <div class="field"><div class="label">Creado</div><div class="value" id="t-created"></div></div>
+          <div class="field"><div class="label">Actualizado</div><div class="value" id="t-updated"></div></div>
+        </div>
+      </div>
+      <div class="field"><div class="label">Descripción</div><div class="value" id="t-desc"></div></div>
+      
+      <div class="actions" style="margin-top:16px;">
+        <button class="btn secondary" id="btn-history">📋 Ver Historial Completo</button>
+      </div>
+    </div>
+
+    <!-- Sección de Comentarios -->
+    <div class="card" id="comments-section" style="margin-top:16px;">
+      <h3>� Comentarios del Ticket</h3>
+      
+      <div class="field">
+        <label class="label">Agregar comentario:</label>
+        <textarea id="txt-comment" class="textarea" placeholder="Escribe un comentario sobre este ticket...&#10;&#10;Los comentarios se guardarán en el historial y serán visibles para todos."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btn-add-comment">Agregar Comentario</button>
+      </div>
+    </div>
+
+    <div class="card" id="admin-actions" style="margin-top:16px; display:none;">
+      <h3>Reasignar ticket</h3>
+      <div class="row">
+        <div class="col">
+          <label class="label">Agente</label>
+          <select id="sel-agent"></select>
+        </div>
+        <div class="col">
+          <label class="label">Motivo</label>
+          <input id="txt-reason" class="input" placeholder="Explica por qué reasignas" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btn-transfer">Transferir</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="./pages/ticket.ts"></script>
+</body>
+</html>

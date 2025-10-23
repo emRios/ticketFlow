@@ -4,6 +4,38 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TicketFlow – Demo Tablero</title>
+  <script>
+    // Guardián de autenticación
+    (function() {
+      const userId = localStorage.getItem('ticketflow_userId');
+      const role = localStorage.getItem('ticketflow_role');
+      const here = location.pathname;
+      const loginPath = new URL('./login.html', location.href).pathname;
+      const boardPath = new URL('./index.html', location.href).pathname;
+      const clientFormPath = new URL('./client-form.html', location.href).pathname;
+      
+      // Si no está autenticado, redirigir a login
+      if (!userId || !role) {
+        if (here !== loginPath) {
+          sessionStorage.setItem('ticketflow_redirecting', '1');
+          window.location.replace(loginPath);
+        }
+        return;
+      }
+      
+      // Si es cliente, redirigir a formulario
+      if (role.toUpperCase() === 'CLIENT') {
+        if (here !== clientFormPath) {
+          sessionStorage.setItem('ticketflow_redirecting', '1');
+          window.location.replace(clientFormPath);
+        }
+        return;
+      }
+
+      // Limpia flag si no hubo redirección (estamos en página correcta)
+      sessionStorage.removeItem('ticketflow_redirecting');
+    })();
+  </script>
   <link rel="stylesheet" href="../../packages/board-adapter-vanilla/styles.css" />
   <style> 
     body { background:#fff; margin: 0; }
@@ -50,6 +82,36 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    /* Boot status overlay */
+    #boot-status {
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      padding: 16px 24px;
+      background: #fff8c5;
+      color: #8a6d00;
+      border-bottom: 1px solid #f0e6a0;
+      font-size: 14px;
+      display: none;
+    }
+    #boot-status.show { display: block; }
+
+    /* Modal (assign) */
+    .tf-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .tf-modal-overlay.show { display:flex; }
+    .tf-modal { width:720px; max-width:95vw; background:#fff; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden; }
+    .tf-modal-header { padding:12px 16px; border-bottom:1px solid #eee; font-weight:600; font-size:16px; }
+    .tf-modal-body { padding:16px; }
+    .tf-form-row { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+    .tf-form-row label { width:110px; color:#444; font-size:14px; }
+    .tf-form-row .tf-text { flex:1; padding:8px 10px; border:1px solid #e3e3e8; border-radius:6px; background:#f9fafb; color:#333; }
+    .tf-form-row select { flex:1; padding:8px 10px; border:1px solid #e3e3e8; border-radius:6px; background:#fff; }
+    .tf-note { width:100%; min-height:120px; padding:10px 12px; border:1px solid #f0e6a0; background:#fffce8; border-radius:6px; resize:vertical; }
+    .tf-modal-footer { display:flex; justify-content:flex-end; gap:8px; padding:12px 16px; border-top:1px solid #eee; background:#fafafa; }
+    .tf-btn { padding:8px 14px; border-radius:6px; border:1px solid #e3e3e8; cursor:pointer; font-weight:500; }
+    .tf-btn.primary { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    .tf-btn.secondary { background:#fff; }
   </style>
 </head>
 <body>
@@ -59,9 +121,15 @@
       <button id="scope-assigned" class="scope-btn active" data-scope="assigned">Asignados a mí</button>
       <button id="scope-team" class="scope-btn" data-scope="team">Mi equipo</button>
       <button id="scope-all" class="scope-btn" data-scope="all">Todos</button>
+      <button id="btn-admin" class="scope-btn" style="background:#6b7280; color:#fff; border-color:#6b7280; display:none;">⚙️ Administrar Usuarios</button>
+      <span id="user-info" style="margin-left:16px; font-size:14px; color:#666;"></span>
+      <button id="btn-logout" class="scope-btn" style="background:#ef4444; color:#fff; border-color:#ef4444;">Salir</button>
     </div>
   </header>
+  <div id="boot-status" class="show">Cargando tablero…</div>
   <div id="app" class="board"></div>
-  <script type="module" src="./main.ts"></script>
+  <!-- Modal root (created dynamically if needed) -->
+  <div class="tf-modal-overlay" id="tf-assign-modal-root" style="display:none"></div>
+  <script type="module" src="./pages/main.ts"></script>
 </body>
 </html>

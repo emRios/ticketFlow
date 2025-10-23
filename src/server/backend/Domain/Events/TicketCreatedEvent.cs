@@ -7,5 +7,6 @@ public record TicketCreatedEvent : IDomainEvent
 {
     public Guid TicketId { get; init; }
     public string Title { get; init; } = string.Empty;
+    public string PerformedBy { get; init; } = string.Empty;
     public DateTime OccurredAt { get; init; } = DateTime.UtcNow;
 }

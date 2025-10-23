@@ -3,6 +3,7 @@
 import { currentUser } from '../state/session';
 import { apiFetch } from './apiClient';
 import { mapTicketResponseToDTO, getDefaultColumns, type TicketResponse } from './mappers';
+import { appConfig, type BoardScope as CfgScope } from '../config/app-config';
 
 export type BoardScope = 'assigned' | 'team' | 'all';
 
@@ -58,45 +59,29 @@ export async function getBoard(scope: BoardScope = 'assigned'): Promise<BoardDat
     const tickets = await apiFetch<TicketResponse[]>('/api/tickets');
     
     // Mapear tickets al formato del frontend
-    const mappedTickets = tickets.map((ticket, index) => 
-      mapTicketResponseToDTO(ticket, index)
-    );
+    const mappedTickets = tickets.map((ticket, index) => mapTicketResponseToDTO(ticket, index));
     
     // Filtrar por scope si es necesario
     const filteredTickets = filterTicketsByScope(mappedTickets, scope);
     
+    // Aplicar permisos por scope y usuario + FSM desde config
+    const withCaps = filteredTickets.map(t => ({
+      ...t,
+      capabilities: {
+        ...t.capabilities,
+        allowedTransitions: appConfig.fsm[t.columnId] ?? [],
+          move: computeMoveAllowed(t, scope),
+          assign: computeAssignAllowed(t, scope)
+      }
+    }));
+    
     return {
       columns: getDefaultColumns(),
-      tickets: filteredTickets
+      tickets: withCaps
     };
   } catch (error) {
     console.error('Error obteniendo tablero:', error);
-    console.warn('[getBoard:mock] Usando datos de fallback');
-    
-    // Fallback: devolver mock data en caso de error
-    return {
-      columns: getDefaultColumns(),
-      tickets: [
-        {
-          id: 'TF-1024',
-          title: 'Fallo en pagos',
-          columnId: 'en-proceso',
-          order: 0,
-          assignee: { id: 'u123', name: 'Ana' },
-          requester: { id: 'c88', name: 'Cliente SA' },
-          tags: [{ id: 't1', label: 'Urgente', color: '#ef4444' }],
-          updatedAt: new Date().toISOString(),
-          capabilities: {
-            move: true,
-            reorder: true,
-            assign: false,
-            addTag: true,
-            removeTag: true,
-            allowedTransitions: ['en-espera', 'verificacion', 'resuelto']
-          }
-        }
-      ]
-    };
+    throw error; // Propagar el error sin fallback
   }
 }
 
@@ -110,11 +95,50 @@ function filterTicketsByScope(tickets: TicketDTO[], scope: BoardScope): TicketDT
     case 'assigned':
       return tickets.filter(t => t.assignee?.id === currentUser!.userId);
     case 'team':
-      return tickets.filter(t => 
-        t.assignee && currentUser!.teamIds.includes(t.assignee.id)
-      );
+      // Sin información explícita de equipos en el ticket, aproximamos "mi equipo"
+      // como "tickets asignados a otros agentes (no yo)" para visibilidad colaborativa.
+      return tickets.filter(t => t.assignee && t.assignee.id !== currentUser!.userId);
     case 'all':
     default:
       return tickets;
   }
+}
+
+/** Decide si el usuario actual puede mover la tarjeta en el scope actual */
+function computeMoveAllowed(ticket: TicketDTO, scope: BoardScope): boolean {
+  // Si no hay usuario cargado aún, no bloqueamos (modo dev)
+  if (!currentUser) return true;
+
+  const role = currentUser.role;
+  // ADMIN bypass: puede mover en cualquier scope si está activo en config
+  if (role === 'admin' && appConfig.permissions.adminBypass) return true;
+
+  const isMovableScope = appConfig.permissions.movableScopes.includes(scope as CfgScope);
+  if (!isMovableScope) return false;
+  if (role === 'agent') {
+    if (appConfig.permissions.agentCanMoveUnassigned) return true;
+    return ticket.assignee?.id === currentUser.userId; // solo propios
+  }
+  // clientes/no rol: no mover
+  return false;
+}
+
+/** Decide si el usuario actual puede asignar/reasignar */
+function computeAssignAllowed(ticket: TicketDTO, scope: BoardScope): boolean {
+  if (!currentUser) return false;
+  const isAdmin = currentUser.role === 'admin';
+  const inAssignableStatus = ticket.columnId === 'nuevo' || ticket.columnId === 'en-proceso';
+  if (!inAssignableStatus) return false;
+
+  // Admin puede reasignar todos
+  if (isAdmin) return true;
+
+  // Agente: puede reasignar sus propios tickets y, en vista de equipo, permitir edición colaborativa
+  if (currentUser.role === 'agent') {
+    const isMine = ticket.assignee?.id === currentUser.userId;
+    const inTeamView = scope === 'team';
+    return isMine || inTeamView;
+  }
+
+  return false;
 }

@@ -32,7 +32,8 @@ export async function loadBoard(scope: BoardScope): Promise<BoardData> {
     assignee: t.assignee,
     capabilities: {
       canDrag: t.capabilities.move,
-      canDropTo: t.capabilities.allowedTransitions
+      canDropTo: t.capabilities.allowedTransitions,
+      canAssign: t.capabilities.assign === true
     }
   }));
   

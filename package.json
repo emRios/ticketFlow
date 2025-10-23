@@ -1,0 +1,22 @@
+{
+  "name": "ticketflow",
+  "version": "1.0.0",
+  "description": "- HTML5 Drag & Drop nativo (sin libs DnD).\r - Lógica de negocio fuera de la UI (domain-core, board-core).\r - Adapter de tablero vanilla (board-adapter-vanilla).",
+  "main": "generate-token.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "npm --prefix ./src/web run dev",
+    "build": "npm --prefix ./src/web run build",
+    "preview": "npm --prefix ./src/web run preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
+  }
+}

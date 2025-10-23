@@ -33,8 +33,8 @@ public class ChangeTicketStatusHandler
             throw new InvalidOperationException($"Ticket {command.TicketId} no encontrado");
         }
 
-        // TODO: Implementar cambio de estado cuando se agregue la propiedad Status a la entidad Ticket
-        // Por ahora solo retornamos el ticket encontrado
+    // Cambiar estado con trazabilidad de quién lo hizo
+    ticket.ChangeStatus(command.NewStatus, command.ChangedBy, command.Comment);
 
         // Actualizar
         await _repository.UpdateAsync(ticket, cancellationToken);

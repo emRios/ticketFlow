@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TicketFlow – Administración de Usuarios</title>
+  <script>
+    (function() {
+      const userId = localStorage.getItem('ticketflow_userId');
+      const role = localStorage.getItem('ticketflow_role');
+      const loginPath = new URL('./login.html', location.href).pathname;
+      
+      // Validar autenticación
+      if (!userId || !role) {
+        sessionStorage.setItem('ticketflow_redirecting', '1');
+        window.location.replace(loginPath);
+        return;
+      }
+      
+      // Validar que sea ADMIN
+      if (role.toUpperCase() !== 'ADMIN') {
+        alert('❌ Acceso denegado. Solo administradores pueden acceder a esta página.');
+        window.location.replace('./index.html');
+        return;
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="../../packages/board-adapter-vanilla/styles.css" />
+  <style>
+    body { font-family: ui-sans-serif, system-ui; margin: 0; background: #f9fafb; }
+    .page { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; background: #fff; margin-bottom: 24px; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: 1px solid #e3e3e8; cursor: pointer; font-weight: 500; background: #fff; }
+    .btn:hover { background: #f3f4f6; }
+    .btn.primary { background: #10b981; color: #fff; border-color: #10b981; }
+    .btn.primary:hover { background: #059669; }
+    .btn.secondary { background: #6b7280; color: #fff; border-color: #6b7280; }
+    .btn.secondary:hover { background: #4b5563; }
+    .btn.danger { background: #ef4444; color: #fff; border-color: #ef4444; }
+    .btn.danger:hover { background: #dc2626; }
+    .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; background: #f3f4f6; font-size: 13px; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #374151; font-size: 14px; }
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+    .form-control:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+    
+    .users-table { width: 100%; border-collapse: collapse; }
+    .users-table thead { background: #f9fafb; }
+    .users-table th { text-align: left; padding: 12px; font-weight: 600; font-size: 13px; color: #374151; border-bottom: 2px solid #e5e7eb; }
+    .users-table td { padding: 12px; font-size: 14px; color: #111827; border-bottom: 1px solid #f3f4f6; }
+    .users-table tbody tr:hover { background: #fafafa; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .badge.admin { background: #fef3c7; color: #92400e; }
+    .badge.agent { background: #dbeafe; color: #1e40af; }
+    .badge.client { background: #e0e7ff; color: #3730a3; }
+    
+    .empty-state { text-align: center; padding: 48px 24px; color: #9ca3af; }
+    .loading { text-align: center; padding: 48px 24px; color: #6b7280; }
+    
+    .action-buttons { display: flex; gap: 6px; justify-content: center; }
+    .btn-icon { padding: 6px 10px; border-radius: 4px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+    .btn-icon:hover { background: #f3f4f6; }
+    .btn-icon.edit { color: #2563eb; }
+    .btn-icon.edit:hover { background: #dbeafe; border-color: #2563eb; }
+    .btn-icon.delete { color: #dc2626; }
+    .btn-icon.delete:hover { background: #fee2e2; border-color: #dc2626; }
+    
+    h2 { margin: 0 0 8px 0; font-size: 24px; color: #111827; }
+    h3 { margin: 0 0 16px 0; font-size: 18px; color: #111827; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="toolbar">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn secondary" id="btn-back">← Volver al Tablero</button>
+      </div>
+      <div id="user-info" class="pill"></div>
+    </div>
+
+    <!-- Formulario para crear usuario -->
+    <div class="card">
+      <h2>➕ Crear Nuevo Usuario Agente</h2>
+      <form id="form-create-user">
+        <div class="form-group">
+          <label for="input-name">Nombre completo *</label>
+          <input type="text" id="input-name" class="form-control" placeholder="Juan Pérez" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="input-email">Email *</label>
+          <input type="email" id="input-email" class="form-control" placeholder="juan@ticketflow.com" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="input-role">Rol *</label>
+          <select id="input-role" class="form-control" required>
+            <option value="AGENT">Agente</option>
+            <option value="ADMIN">Administrador</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn primary">Crear Usuario</button>
+      </form>
+    </div>
+
+    <!-- Lista de usuarios -->
+    <div class="card">
+      <h3>👥 Usuarios del Sistema</h3>
+      
+      <div id="users-loading" class="loading">
+        <div>⏳ Cargando usuarios...</div>
+      </div>
+
+      <div id="users-empty" class="empty-state" style="display: none;">
+        <div>📭 No hay usuarios registrados</div>
+      </div>
+
+      <div id="users-container" style="display: none;">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>ID</th>
+              <th style="text-align: center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./pages/admin.ts"></script>
+</body>
+</html>
